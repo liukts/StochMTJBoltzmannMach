@@ -2,10 +2,9 @@ import numpy as np
 import random as rnd
 import matplotlib.pyplot as plt
 import os
-import copy
 
 # folder to save results
-date = "06_13_22"
+date = "06_20_22"
 target_dir = ("RBM_Sim_" + date)
 
 # if folder does not exist, create it
@@ -34,43 +33,32 @@ def sigmoid(x):
     return sig
 
 #Initialize Neurons (The variables that make up our Boolean Clauses)
-neurs = np.array([0,0,0,0,0,0])
+neurs = np.array([[1,0,0,1,1,1]])
+weighted = (neurs @ W) #Stores the weighted neurons to determine activation probability
 
 for f in range(0, Iter):
     #Generate Random Values to Start 
     for h in range(0,6):
-        neurs[h] = rnd.randint(0, 1)
+        neurs[0][h] = rnd.randint(0, 1)
 
-    Teff = 50 #Reset Temperature
-
-    #Initialize Energy 
-    temp = copy.deepcopy(neurs) #Temporary copy of neurons that holds the next possible solution
-    curr = np.sum(np.array(np.transpose(neurs) * W * neurs)) 
-    #Stores the calculated system energy of the current solution based on the weight matrix
-    next = curr #Temporary variable that holds the calculated energy of the next possible solution
+    Teff = 50 #Reset Temperature    
 
     #Iterate until the system has cooled
-    while(Teff >= 5):
-        for g in range(0,len(neurs)):
-            temp[g] = (temp[g]+1) % 2 #Flips one of the neurons (0 to 1 or 1 to 0)
-            next = np.sum(np.transpose(temp) * W * temp) #Calculates the energy of the next solution 
-            rand = rnd.uniform(0.00,1.00) #Generate a random number from 0.00 - 1.00
-            if next < curr: #If the next solution is better than the previous, save it
-                curr = next
-                neurs = copy.deepcopy(temp)
-            elif rand < sigmoid(-((Teff*0.16)-4)): 
-            #If the random number we generated is less than the number given from the sigmoid based on the temperature
-            #Then save this solution even though it is worse
-                curr = next
-                neurs = copy.deepcopy(temp)
-            else: #Reset temporary neurons
-                temp = copy.deepcopy(neurs)
-        Teff -= step 
+    while(Teff >= 1):
+        for g in range(0, 6): #Iterations per temperature
+            for h in range(0,5): #Do this to each Neuron
+                rand = rnd.uniform(0, 1) #rand num for determining set probability
+                if rand < sigmoid(weighted[0][h]/Teff):
+                    neurs[0][h] = 1
+                else:
+                    neurs[0][h] = 0
+                weighted = (neurs @ W)
+        Teff -= step
     
     #Function to Convert Binary neurons to Decimal
     sum = 0
-    for k in range(0, len(neurs)):
-        sum += (neurs[k] * (2**(len(neurs)-k-1)))
+    for k in range(0, len(neurs[0])):
+        sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
     sols.append(sum) #Save Solution
 
 #Graphing of Histogram
