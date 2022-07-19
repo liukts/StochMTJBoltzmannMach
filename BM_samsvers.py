@@ -1,53 +1,75 @@
 import numpy as np
-import random as rnd
-import copy
+import matplotlib.pyplot as plt
+from vcma_mod_single import vcma_mod_single
+import os
+from tqdm import tqdm
 
-#Boolean Clauses: (X||Y||Z), (X'||Y||Z), (X'||Y'||Z), (X||Y'||Z'), (X'||Y||Z')
-#Weight Matrix 
-W = np.array([[-4, -1, -1, 10, -1, -1], [-1, -7, -2, -2, 10, -1], \
-     [-1, -2, -6, -2, -1, 10], [10, -2, -2, -8, -1, -1], \
-     [-1, 10, -1, -1, -5, -1], [-1, -1, 10, -1, -1, -5]])
+# folder to save results
+date = "06_20_22"
+target_dir = ("RBM_Sim_" + date)
+
+# if folder does not exist, create it
+if not os.path.isdir("./outputs/"):
+    os.mkdir("./outputs/")
+
+# boolean clauses: (X||Y||Z) & (X'||Y||Z) & (X'||Y'||Z) & (X||Y'||Z') & (X'||Y||Z')
+# soln: 21/010101 28/011100
+W = np.array([[-5, -1, -1, 10, -1, -1], 
+              [-1, -7, -2, -2, 10, -1],
+              [-1, -2, -7, -2, -1, 10], 
+              [10, -2, -2, -7, -1, -1],
+              [-1, 10, -1, -1, -5, -1], 
+              [-1, -1, 10, -1, -1, -5]])
+
+# boolean clauses: (x||y||z) & (x'||y||z)
+# soln: 21/010101 28/011100
+# W = np.array([[-3, -1, -1, 10,  0,  0], 
+#               [-1, -5, -2, -1, 10,  0],
+#               [-1, -2, -5, -1,  0, 10], 
+#               [10, -1, -1, -3,  0,  0],
+#               [ 0, 10,  0,  0, -1,  0], 
+#               [ 0,  0, 10,  0,  0, -1]])
 
 
-#Initialize Gate Bias Voltage
-Vg = 20
+V_start = 0
+V_end = -1
+step = -0.05
+V_arr = np.arange(V_start,V_end-0.01,step)
+print(V_arr)
+Iter = 1000 # number of Simulations to Run
+sols = [] # empty array of solutions
+scale = 5e6
 
-#Initialize Temperature & Step Size
-Teff = 50
-step = 5
+# initialize neurons (The variables that make up our Boolean Clauses)
+thetas = np.array([np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2])
+phis = np.array([0,0,0,0,0,0])
+neurs = np.array([[0,0,0,0,0,0]])
+weighted = (neurs @ W) # stores the weighted neurons to determine activation probability
+sysenergy = (neurs @ W @ neurs.T)
 
-#Initialize Set Probability
-#Prob = 1/(1+np.exp(-(Vte - Vte0)/Teff))
+for f in range(0, Iter):
+    for h in range(0,6):
+        thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],0,0)
+        neurs[0][h] = out
 
-#Initialize Sigmoid
-def sigmoid(x):
-    sig = 1/(1+np.exp(x))
-    return sig
+    for v in tqdm(V_arr,leave=False,ncols=80):
+        for g in range(0,5): # iterations per neuron
+            for h in range(0,5): 
+                thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],weighted[0,h]*scale,v)
+                neurs[0][h] = out
+        weighted = (neurs @ W)
+    
+        #Function to Convert Binary neurons to Decimal
+        sum = 0
+        for k in range(0, len(neurs[0])):
+            sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
+        sols.append(sum) #Save Solution
+    print(f'iteration {f}/{Iter}, {sum}, {bin(sum)}')
 
-#Initialize Neurons
-neurs = np.array([0,0,0,0,0,0])
-for h in range(0,6):
-    neurs[h] = rnd.randint(0, 1)
-print("Starting Solution:", neurs)
-
-#Initialize Energy
-temp = copy.deepcopy(neurs)
-curr = np.sum(np.array(np.transpose(neurs) * W * neurs))
-next = curr
-
-#Iterate until Temperature is 0
-while(Teff >= 0):
-    for h in range(0, 6):
-        temp[h] = (temp[h]+1) % 2
-        next = np.sum(np.transpose(temp) * W * temp)
-        rand = rnd.randint(0,10) / 10
-        if next < curr:
-            curr = next
-            neurs = copy.deepcopy(temp)
-        elif rand < sigmoid(-((Teff*0.16)-4)):
-            curr = next
-            neurs = copy.deepcopy(temp)
-        else:
-            temp = copy.deepcopy(neurs)
-        Teff -= step
-print("Ending Solution:  ", neurs)
+#Graphing of Histogram
+np.save('./sam_outputs/hist.npy',sols)
+plt.hist(sols,bins=10)
+plt.xlabel('Value')
+plt.ylabel('Frequencry')
+plt.title('Solution Frequency Over ' + str(Iter) + ' Iterations')
+plt.savefig('./sam_outputs/' + target_dir + '_' + str(Iter) + '_Histogram.png')

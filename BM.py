@@ -22,8 +22,8 @@ W = np.array([[-4, -1, -1, 10, -1, -1], [-1, -7, -2, -2, 10, -1], \
               [-1, 10, -1, -1, -5, -1], [-1, -1, 10, -1, -1, -5]])
 
 #Initialize Temperature & Step Size (Dictates the _____ of the model)
-Teff = 50
-step = 5
+T_eff = 20
+step = 0.1
 Iter = 1000 #Number of Simulations to Run
 sols = [] #Empty array of solutions
 
@@ -41,10 +41,10 @@ for f in range(0, Iter):
     for h in range(0,6):
         neurs[0][h] = rnd.randint(0, 1)
 
-    Teff = 50 #Reset Temperature    
+    Teff = T_eff #Reset Temperature    
 
     #Iterate until the system has cooled
-    while(Teff >= 1):
+    while(Teff >= 0.5):
         for g in range(0, 6): #Iterations per temperature
             for h in range(0,5): #Do this to each Neuron
                 rand = rnd.uniform(0, 1) #rand num for determining set probability
