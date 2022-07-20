@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "06_20_22"
+date = "07_18_22"
 target_dir = ("RBM_Sim_" + date)
 
 # if folder does not exist, create it
@@ -17,13 +17,17 @@ if not os.path.isdir("./outputs/"):
 
 #Boolean Clauses: (X||Y||Z), (X'||Y||Z), (X'||Y'||Z), (X||Y'||Z'), (X'||Y||Z')
 #Weight Matrix (Created from Boolean Clauses)
-W = np.array([[-4, -1, -1, 10, -1, -1], [-1, -7, -2, -2, 10, -1], \
-              [-1, -2, -6, -2, -1, 10], [10, -2, -2, -8, -1, -1], \
-              [-1, 10, -1, -1, -5, -1], [-1, -1, 10, -1, -1, -5]])
+     # x   y   z  x'  y'  z'
+W = ([-5, -1, -1, 10, -1, -1], 
+     [-1, -7, -2, -2, 10, -1], 
+     [-1, -2, -7, -2, -1, 10], 
+     [10, -2, -2, -7, -1, -1], 
+     [-1, 10, -1, -1, -5, -1], 
+     [-1, -1, 10, -1, -1, -5])
 
 #Initialize Temperature & Step Size (Dictates the _____ of the model)
-Teff = 50
-step = 5
+T_init = 10.00
+step = 0.01
 Iter = 1000 #Number of Simulations to Run
 sols = [] #Empty array of solutions
 
@@ -33,32 +37,33 @@ def sigmoid(x):
     return sig
 
 #Initialize Neurons (The variables that make up our Boolean Clauses)
-neurs = np.array([[1,0,0,1,1,1]])
-weighted = (neurs @ W) #Stores the weighted neurons to determine activation probability
+neurs = ([0,0,0,0,0,0])
+weighted = np.dot(neurs, W) #Stores the weighted neurons to determine activation probability
 
 for f in range(0, Iter):
     #Generate Random Values to Start 
-    for h in range(0,6):
-        neurs[0][h] = rnd.randint(0, 1)
+    for h in range(0,len(neurs)):
+        neurs[h] = rnd.randint(0, 1)
+    weighted = np.dot(neurs, W) #Calculate Weights
 
-    Teff = 50 #Reset Temperature    
+    Teff = T_init #Reset Temperature    
 
     #Iterate until the system has cooled
-    while(Teff >= 1):
-        for g in range(0, 6): #Iterations per temperature
-            for h in range(0,5): #Do this to each Neuron
+    while(Teff >= 0.01):
+        for g in range(0, 1): #Iterations per temperature
+            for h in range(0,len(neurs)): #Do this to each Neuron
                 rand = rnd.uniform(0, 1) #rand num for determining set probability
-                if rand < sigmoid(weighted[0][h]/Teff):
-                    neurs[0][h] = 1
+                if rand < sigmoid(weighted[h]/Teff):
+                    neurs[h] = 1
                 else:
-                    neurs[0][h] = 0
-                weighted = (neurs @ W)
+                    neurs[h] = 0
+            weighted = np.dot(neurs, W)
         Teff -= step
     
     #Function to Convert Binary neurons to Decimal
     sum = 0
-    for k in range(0, len(neurs[0])):
-        sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
+    for k in range(0, len(neurs)):
+        sum += (neurs[k] * (2**(len(neurs)-k-1)))
     sols.append(sum) #Save Solution
 
 #Graphing of Histogram

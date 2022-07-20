@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "06_29_22"
-target_dir = ("RBM_MultiSol_" + date)
+date = "06_30_22"
+target_dir = ("RBM_Rand_" + date)
 
 # if folder does not exist, create it
 if not os.path.isdir("./outputs/"):
@@ -15,13 +15,15 @@ if not os.path.isdir("./outputs/"):
 if not os.path.isdir("./outputs/"):
     os.mkdir("./outputs/")
 
-#Boolean Clauses: (X||Y), (X'||Y')
+#Boolean Clauses: (X||Y||Z), (X'||Y||Z), (X'||Y'||Z), (X||Y'||Z'), (X'||Y||Z')
 #Weight Matrix (Created from Boolean Clauses)
-     # x   y   x'  y'
-W = ([-2, -1, 10,  -10], 
-     [-1, -2,  -10, 10], 
-     [10,  -10, -2, -1], 
-     [ -10, 10, -1, -2])
+     # x   y   z  x'  y'  z'
+W = ([-5, -1, -1, 10, -1, -1], 
+     [-1, -7, -2, -2, 10, -1], 
+     [-1, -2, -7, -2, -1, 10], 
+     [10, -2, -2, -7, -1, -1], 
+     [-1, 10, -1, -1, -5, -1], 
+     [-1, -1, 10, -1, -1, -5])
 
 #Initialize Temperature & Step Size (Dictates the _____ of the model)
 T_init = 10.0
@@ -35,28 +37,28 @@ def sigmoid(x):
     return sig
 
 #Initialize Neurons (The variables that make up our Boolean Clauses)
-neurs = ([0,0,0,0])
+neurs = ([0,0,0,0,0,0])
 weighted = np.dot(neurs, W) #Stores the weighted neurons to determine activation probability
-#np.dot(np.transpose(neurs), np.dot(neurs, W))
+order = ([0, 1, 2, 3, 4, 5]) #The order the neurons will be updated in (this will be updated randomly later)
 
 for f in range(0, Iter):
     #Generate Random Values to Start 
     for h in range(0,len(neurs)):
         neurs[h] = rnd.randint(0, 1)
-    weighted = np.dot(neurs, W) #Stores the weighted neurons to determine activation probability
+    weighted = np.dot(neurs, W) #Calculate Weights
 
     Teff = T_init #Reset Temperature    
 
     #Iterate until the system has cooled
     while(Teff >= 0.1):
-        for g in range(0, 1): #Iterations per temperature
-            for h in range(0,len(neurs)): #Do this to each Neuron
-                rand = rnd.uniform(0, 1) #rand num for determining set probability
-                if rand < sigmoid(weighted[h]/Teff):
-                    neurs[h] = 1
-                else:
-                    neurs[h] = 0
-                weighted = np.dot(neurs, W)
+        rnd.shuffle(order)
+        for h in range(0,len(neurs)): #Do this to each Neuron
+            rand = rnd.uniform(0, 1) #rand num for determining set probability
+            if rand < sigmoid(weighted[order[h]]/Teff):
+                neurs[order[h]] = 1
+            else:
+                neurs[order[h]] = 0
+            weighted = np.dot(neurs, W)
         Teff -= step
     
     #Function to Convert Binary neurons to Decimal
