@@ -36,7 +36,7 @@ V_end = -1
 step = -0.05
 V_arr = np.arange(V_start,V_end-0.01,step)
 print(V_arr)
-Iter = 1000 # number of Simulations to Run
+Iter = 10 # number of Simulations to Run
 sols = [] # empty array of solutions
 scale = 5e6
 
@@ -59,17 +59,17 @@ for f in range(0, Iter):
                 neurs[0][h] = out
         weighted = (neurs @ W)
     
-        #Function to Convert Binary neurons to Decimal
-        sum = 0
-        for k in range(0, len(neurs[0])):
-            sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
-        sols.append(sum) #Save Solution
+    #Function to Convert Binary neurons to Decimal
+    sum = 0
+    for k in range(0, len(neurs[0])):
+        sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
+    sols.append(sum) #Save Solution
     print(f'iteration {f}/{Iter}, {sum}, {bin(sum)}')
 
 #Graphing of Histogram
 np.save('./sam_outputs/hist.npy',sols)
 plt.hist(sols,bins=10)
 plt.xlabel('Value')
-plt.ylabel('Frequencry')
+plt.ylabel('Frequency')
 plt.title('Solution Frequency Over ' + str(Iter) + ' Iterations')
 plt.savefig('./sam_outputs/' + target_dir + '_' + str(Iter) + '_Histogram.png')
