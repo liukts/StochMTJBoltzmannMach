@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "07_18_22"
-target_dir = ("RBM_Sim_" + date)
+date = "06_29_22"
+target_dir = ("RBM_Sim2_" + date)
 
 # if folder does not exist, create it
 if not os.path.isdir("./outputs/"):
@@ -15,19 +15,19 @@ if not os.path.isdir("./outputs/"):
 if not os.path.isdir("./outputs/"):
     os.mkdir("./outputs/")
 
-#Boolean Clauses: (X||Y||Z), (X'||Y||Z), (X'||Y'||Z), (X||Y'||Z'), (X'||Y||Z')
+#Boolean Clauses: (X||Y||Z), (X'||Y||Z)
 #Weight Matrix (Created from Boolean Clauses)
-     # x   y   z  x'  y'  z'
-W = ([-5, -1, -1, 10, -1, -1], 
-     [-1, -7, -2, -2, 10, -1], 
-     [-1, -2, -7, -2, -1, 10], 
-     [10, -2, -2, -7, -1, -1], 
-     [-1, 10, -1, -1, -5, -1], 
-     [-1, -1, 10, -1, -1, -5])
+     #  x   y   z   x'  y'  z'
+W = ([ -3, -1, -1, 10,-10,-10], 
+     [ -1, -5, -2, -1, 10,-10], 
+     [ -1, -2, -5, -1,-10, 10], 
+     [ 10, -1, -1, -3,-10,-10], 
+     [-10, 10,-10,-10, -1,-10], 
+     [-10,-10, 10,-10,-10, -1])
 
 #Initialize Temperature & Step Size (Dictates the _____ of the model)
-T_init = 10.00
-step = 0.01
+T_init = 20
+step = 1
 Iter = 1000 #Number of Simulations to Run
 sols = [] #Empty array of solutions
 
@@ -49,7 +49,7 @@ for f in range(0, Iter):
     Teff = T_init #Reset Temperature    
 
     #Iterate until the system has cooled
-    while(Teff >= 0.01):
+    while(Teff >= 5):
         for g in range(0, 1): #Iterations per temperature
             for h in range(0,len(neurs)): #Do this to each Neuron
                 rand = rnd.uniform(0, 1) #rand num for determining set probability

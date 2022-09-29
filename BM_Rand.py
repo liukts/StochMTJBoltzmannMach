@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "07_18_22"
-target_dir = ("RBM_Sim_" + date)
+date = "06_30_22"
+target_dir = ("RBM_Rand_" + date)
 
 # if folder does not exist, create it
 if not os.path.isdir("./outputs/"):
@@ -26,8 +26,8 @@ W = ([-5, -1, -1, 10, -1, -1],
      [-1, -1, 10, -1, -1, -5])
 
 #Initialize Temperature & Step Size (Dictates the _____ of the model)
-T_init = 10.00
-step = 0.01
+T_init = 10.0
+step = 0.1
 Iter = 1000 #Number of Simulations to Run
 sols = [] #Empty array of solutions
 
@@ -39,6 +39,7 @@ def sigmoid(x):
 #Initialize Neurons (The variables that make up our Boolean Clauses)
 neurs = ([0,0,0,0,0,0])
 weighted = np.dot(neurs, W) #Stores the weighted neurons to determine activation probability
+order = ([0, 1, 2, 3, 4, 5]) #The order the neurons will be updated in (this will be updated randomly later)
 
 for f in range(0, Iter):
     #Generate Random Values to Start 
@@ -49,14 +50,14 @@ for f in range(0, Iter):
     Teff = T_init #Reset Temperature    
 
     #Iterate until the system has cooled
-    while(Teff >= 0.01):
-        for g in range(0, 1): #Iterations per temperature
-            for h in range(0,len(neurs)): #Do this to each Neuron
-                rand = rnd.uniform(0, 1) #rand num for determining set probability
-                if rand < sigmoid(weighted[h]/Teff):
-                    neurs[h] = 1
-                else:
-                    neurs[h] = 0
+    while(Teff >= 0.1):
+        rnd.shuffle(order)
+        for h in range(0,len(neurs)): #Do this to each Neuron
+            rand = rnd.uniform(0, 1) #rand num for determining set probability
+            if rand < sigmoid(weighted[order[h]]/Teff):
+                neurs[order[h]] = 1
+            else:
+                neurs[order[h]] = 0
             weighted = np.dot(neurs, W)
         Teff -= step
     
