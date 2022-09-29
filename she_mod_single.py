@@ -1,9 +1,9 @@
 import numpy as np
 
-def vcma_mod_single(init,ph_init,Jappl,v_hold):
-    t_step = 1e-10
+def she_mod(init,ph_init,Jappl,J_she):
+    t_step = 2e-10
     v_pulse = 0
-    J_she = 5e11
+    J_she = J_she
     t_pulse = 20e-9
     t_relax = 20e-9
     bitstr = []
@@ -21,8 +21,8 @@ def vcma_mod_single(init,ph_init,Jappl,v_hold):
     b = 50e-9                       # Length of the MTJ in m
     tf = 1.1e-9                     # Thickness of the freelayer in m                           
     tox = 1.5e-9                    # Thickness of the MgO barrier in m
-    P = 0.7                         # Spin polarization of the tunnel current
-    alpha = 0.01                    # Gilbert damping damping factor
+    P = 0.6                         # Spin polarization of the tunnel current
+    alpha = 0.03                    # Gilbert damping damping factor
     T = 300                         # Temperature in K
     Ki = 1.0056364e-3               # The anisotropy energy in J/m2
     Ms = 1.2e6                      # Saturation magnetization in A/m
@@ -46,8 +46,8 @@ def vcma_mod_single(init,ph_init,Jappl,v_hold):
     d_ox = 50e-9
     Rox = rho_ox*d_ox/(A)
     
-    Hx = 0        
-    Hy = 0                     
+    Hx = 0       
+    Hy = 0                  
     Hz = 0 
     Htherm = np.sqrt((2*u0*alpha*kb*T)/(Bsat*gamma_b*t_step*v))/u0  
     
@@ -84,17 +84,17 @@ def vcma_mod_single(init,ph_init,Jappl,v_hold):
     power.append(0)
     R.append(Rp)                # TMR from Parallel state (Start from Rp=60)
     for i in range(int(t_pulse/t_step)):
-        V = v_pulse+v_hold
+        V = v_pulse
         J_SHE = J_she
         J_STT = Jappl
         Hk = (2*Ki)/(tf*Ms*u0)-(2*ksi*V)/(u0*Ms*tox*tf);                                                                     # effective anisotropy field with VCMA effect
         Ax = Hx-Nx*Ms*np.sin(theta[-1])*np.cos(phi[-1])+np.random.normal()*Htherm                                            # x axis component of the effective magnetic field
         Ay = Hy-Ny*Ms*np.sin(theta[-1])*np.sin(phi[-1])+np.random.normal()*Htherm                                            # y axis component of the effective magnetic field
-        Az = Hz-Nz*Ms*np.cos(theta[-1])+Hk*np.cos(theta[-1])-((alpha/(1+alpha*alpha))*F*P*J_STT)+np.random.normal()*Htherm   # z axis component of the effective magnetic field
+        Az = Hz-Nz*Ms*np.cos(theta[-1])+Hk*np.cos(theta[-1])+np.random.normal()*Htherm   # z axis component of the effective magneitc field
         dphi = gammap*(Ax*(-np.cos(theta[-1])*np.cos(phi[-1])-alpha*np.sin(phi[-1]))+Ay*(-np.cos(theta[-1])*np.sin(phi[-1])+alpha*np.cos(phi[-1]))+
-                        Az*np.sin(theta[-1]))/(np.sin(theta[-1]))+J_SHE*F*eta*(np.sin(phi[-1])-alpha*np.cos(phi[-1])*np.cos(theta[-1]))/(np.sin(theta[-1])*(1+alpha*alpha))           
+                        Az*np.sin(theta[-1]))/(np.sin(theta[-1]))+J_SHE*F*eta*(np.sin(phi[-1])-alpha*np.cos(phi[-1])*np.cos(theta[-1]))/(np.sin(theta[-1])*(1+alpha*alpha))-((alpha*F*P*J_STT)/(1+alpha*alpha))
         dtheta = gammap*(Ax*(alpha*np.cos(theta[-1])*np.cos(phi[-1])-np.sin(phi[-1]))+Ay*(alpha*np.cos(theta[-1])*np.sin(phi[-1])+np.cos(phi[-1]))-
-                        Az*alpha*np.sin(theta[-1]))-J_SHE*F*eta*(np.cos(phi[-1])*np.cos(theta[-1])+alpha*np.sin(phi[-1]))/(1+alpha*alpha)     
+                        Az*alpha*np.sin(theta[-1]))-J_SHE*F*eta*(np.cos(phi[-1])*np.cos(theta[-1])+(alpha*np.sin(phi[-1]))/(1+alpha*alpha))+((F*P*J_STT)*np.sin(theta[-1])/(1+alpha*alpha))   
         R1 = Rp*(1+(V/Vh)**2+TMR)/(1+(V/Vh)**2+TMR*(1+(np.cos(theta[-1]) ))/2)
         power.append(V**2/Rox+R2*(np.abs(J_SHE*A2))**2+R1*(J_STT*A)**2)
         phi.append(phi[-1]+t_step*dphi)                                     
@@ -102,17 +102,17 @@ def vcma_mod_single(init,ph_init,Jappl,v_hold):
         energy.append(energy[-1]+t_step*power[-1])
         R.append(R1)     # MTJ Resistance 
     for i in range(int(t_relax/t_step)):
-        V = v_hold
+        V = 0
         J_SHE = 0
         J_STT = Jappl
         Hk = (2*Ki)/(tf*Ms*u0)-(2*ksi*V)/(u0*Ms*tox*tf);  # effective anisotropy field with VCMA effect
         Ax = Hx-Nx*Ms*np.sin(theta[-1])*np.cos(phi[-1])+np.random.normal()*Htherm                                               # x axis component of the effective magnetic field
         Ay = Hy-Ny*Ms*np.sin(theta[-1])*np.sin(phi[-1])+np.random.normal()*Htherm                                               # y axis component of the effective magnetic field
-        Az = Hz-Nz*Ms*np.cos(theta[-1])+Hk*np.cos(theta[-1])-((alpha/(1+alpha*alpha))*F*P*J_STT)+np.random.normal()*Htherm      # z axis component of the effective magnetic field
+        Az = Hz-Nz*Ms*np.cos(theta[-1])+Hk*np.cos(theta[-1])+np.random.normal()*Htherm   # z axis component of the effective magneitc field
         dphi = gammap*(Ax*(-np.cos(theta[-1])*np.cos(phi[-1])-alpha*np.sin(phi[-1]))+Ay*(-np.cos(theta[-1])*np.sin(phi[-1])+alpha*np.cos(phi[-1]))+
-                        Az*np.sin(theta[-1]))/(np.sin(theta[-1]))+J_SHE*F*eta*(np.sin(phi[-1])-alpha*np.cos(phi[-1])*np.cos(theta[-1]))/(np.sin(theta[-1])*(1+alpha*alpha))           
+                        Az*np.sin(theta[-1]))/(np.sin(theta[-1]))+J_SHE*F*eta*(np.sin(phi[-1])-alpha*np.cos(phi[-1])*np.cos(theta[-1]))/(np.sin(theta[-1])*(1+alpha*alpha))-((alpha*F*P*J_STT)/(1+alpha*alpha))
         dtheta = gammap*(Ax*(alpha*np.cos(theta[-1])*np.cos(phi[-1])-np.sin(phi[-1]))+Ay*(alpha*np.cos(theta[-1])*np.sin(phi[-1])+np.cos(phi[-1]))-
-                        Az*alpha*np.sin(theta[-1]))-J_SHE*F*eta*(np.cos(phi[-1])*np.cos(theta[-1])+alpha*np.sin(phi[-1]))/(1+alpha*alpha)     
+                        Az*alpha*np.sin(theta[-1]))-J_SHE*F*eta*(np.cos(phi[-1])*np.cos(theta[-1])+(alpha*np.sin(phi[-1]))/(1+alpha*alpha))+((F*P*J_STT)*np.sin(theta[-1])/(1+alpha*alpha))      
         R1 = Rp*(1+(V/Vh)**2+TMR)/(1+(V/Vh)**2+TMR*(1+(np.cos(theta[-1]) ))/2)
         power.append(V**2/Rox+R2*(np.abs(J_SHE*A2))**2+R1*(J_STT*A)**2)
         phi.append(phi[-1]+t_step*dphi)                                     

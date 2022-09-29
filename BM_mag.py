@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from vcma_mod_single import vcma_mod_single
+from she_mod_single import she_mod
 import os
 from tqdm import tqdm
 
@@ -31,14 +31,16 @@ W = np.array([[-5, -1, -1, 10, -1, -1],
 #               [ 0,  0, 10,  0,  0, -1]])
 
 
-V_start = 0
-V_end = -1
-step = -0.05
-V_arr = np.arange(V_start,V_end-0.01,step)
+###### MAXIMUM ACCEPTABLE START IS 5E12
+###### MINIMUM SHOULD BE 2.3E11
+V_start = 5e12
+V_end = 2.3e11
+steps = 21
+V_arr = np.linspace(V_start,V_end,steps)
 print(V_arr)
 Iter = 10 # number of Simulations to Run
 sols = [] # empty array of solutions
-scale = 5e6
+scale = 2e9 ##### SCALE CHANGED TO 5E9
 
 # initialize neurons (The variables that make up our Boolean Clauses)
 thetas = np.array([np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2])
@@ -49,13 +51,13 @@ sysenergy = (neurs @ W @ neurs.T)
 
 for f in range(0, Iter):
     for h in range(0,6):
-        thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],0,0)
+        thetas[h],phis[h],out,energy = she_mod(thetas[h],phis[h],0,0)
         neurs[0][h] = out
 
     for v in tqdm(V_arr,leave=False,ncols=80):
         for g in range(0,5): # iterations per neuron
             for h in range(0,5): 
-                thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],weighted[0,h]*scale,v)
+                thetas[h],phis[h],out,energy = she_mod(thetas[h],phis[h],weighted[0,h]*scale,v)
                 neurs[0][h] = out
         weighted = (neurs @ W)
     
@@ -64,7 +66,7 @@ for f in range(0, Iter):
     for k in range(0, len(neurs[0])):
         sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
     sols.append(sum) #Save Solution
-    print(f'iteration {f}/{Iter}, {sum}, {bin(sum)}')
+    print(f'iteration {f+1}/{Iter}, {sum}, {bin(sum)}')
 
 #Graphing of Histogram
 np.save('./sam_outputs/hist.npy',sols)
