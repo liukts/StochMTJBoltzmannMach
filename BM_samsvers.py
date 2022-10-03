@@ -1,7 +1,7 @@
 from tokenize import Double
 import numpy as np
 import matplotlib.pyplot as plt
-from vcma_mod_single import vcma_mod_single
+from she_mod_single import vcma_mod_single
 import os
 from tqdm import tqdm
 
