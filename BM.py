@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "07_18_22"
+date = "07_20_22"
 target_dir = ("RBM_Sim_" + date)
 
 # if folder does not exist, create it
@@ -67,7 +67,9 @@ for f in range(0, Iter):
     sols.append(sum) #Save Solution
 
 #Graphing of Histogram
-plt.hist(sols)
+plt.xticks(range(0, 63, 3))
+plt.yticks(range(0, 1000, 100))
+plt.hist(sols, bins=64)
 plt.xlabel('Value')
 plt.ylabel('Frequencry')
 plt.title('Solution Frequency Over ' + str(Iter) + ' Iterations')

@@ -1,3 +1,4 @@
+from tokenize import Double
 import numpy as np
 import matplotlib.pyplot as plt
 from vcma_mod_single import vcma_mod_single
@@ -5,7 +6,7 @@ import os
 from tqdm import tqdm
 
 # folder to save results
-date = "06_20_22"
+date = "09_30_22"
 target_dir = ("RBM_Sim_" + date)
 
 # if folder does not exist, create it
@@ -31,13 +32,15 @@ W = np.array([[-5, -1, -1, 10, -1, -1],
 #               [ 0,  0, 10,  0,  0, -1]])
 
 
-V_start = 0
-V_end = -1
-step = -0.05
+V_start = 10
+V_end = -2
+step = -0.1
 V_arr = np.arange(V_start,V_end-0.01,step)
-print(V_arr)
-Iter = 10 # number of Simulations to Run
+#print(V_arr)
+Iter = 1 # number of Simulations to Run
 sols = [] # empty array of solutions
+allNeurs = [] # empty array to contain every travelled solution
+allEnerg = [] # empty array to keep track on energies
 scale = 5e6
 
 # initialize neurons (The variables that make up our Boolean Clauses)
@@ -47,28 +50,47 @@ neurs = np.array([[0,0,0,0,0,0]])
 weighted = (neurs @ W) # stores the weighted neurons to determine activation probability
 sysenergy = (neurs @ W @ neurs.T)
 
+def convertToDec(args):
+    sum = 0
+    for k in range(0, len(args[0])):
+        sum += (args[0][k] * (2**(len(args[0])-k-1)))
+    return sum
+
 for f in range(0, Iter):
     for h in range(0,6):
         thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],0,0)
         neurs[0][h] = out
+    
+    SolArray = []
+    energytemp = []
 
     for v in tqdm(V_arr,leave=False,ncols=80):
-        for g in range(0,5): # iterations per neuron
+        for g in range(0,1): # iterations per temp
             for h in range(0,5): 
                 thetas[h],phis[h],out,energy = vcma_mod_single(thetas[h],phis[h],weighted[0,h]*scale,v)
                 neurs[0][h] = out
-        weighted = (neurs @ W)
+            SolArray.append(convertToDec(neurs))
+            temp = (neurs @ W @ neurs.T)[0][0]
+            energytemp.append(temp)
+            weighted = (neurs @ W)
     
     #Function to Convert Binary neurons to Decimal
-    sum = 0
-    for k in range(0, len(neurs[0])):
-        sum += (neurs[0][k] * (2**(len(neurs[0])-k-1)))
+    allEnerg.append(energytemp)
+    allNeurs.append(SolArray)
+    sum = convertToDec(neurs)
     sols.append(sum) #Save Solution
-    print(f'iteration {f}/{Iter}, {sum}, {bin(sum)}')
+    print(f'Iteration {f+1}/{Iter}, {sum}, {bin(sum)}')
+
+
 
 #Graphing of Histogram
-np.save('./sam_outputs/hist.npy',sols)
-plt.hist(sols,bins=10)
+np.save('./sam_outputs/hist_' + date + '.npy',allNeurs)
+np.save('./sam_outputs/sols_' + date + '.npy',sols)
+np.save('./sam_outputs/energy_' + date + '.npy',allEnerg)
+col = ['purple']
+plt.xticks(range(0, 63, 3))
+plt.yticks(range(0, Iter, int(Iter/10)))
+plt.hist(sols,bins=64, color= col)
 plt.xlabel('Value')
 plt.ylabel('Frequency')
 plt.title('Solution Frequency Over ' + str(Iter) + ' Iterations')
