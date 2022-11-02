@@ -23,7 +23,7 @@ if not os.path.isdir("./outputs/"):
 #        \   \       /
 #         ----2------
 
-#Solution is are 10001/01110
+#Solution is 10001/01110 = 17/14
 #Graph G = (V, E) with edge set E and vertex set V
 Vertices = np.array([0,0,0,0,0])
 Edges = np.array([[10,-1,-1,-1,10], #Connections of node 0
