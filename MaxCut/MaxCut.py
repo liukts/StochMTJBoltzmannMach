@@ -1,11 +1,12 @@
+from re import S
 import numpy as np
 import random as rnd
 import matplotlib.pyplot as plt
 import os
 
 # folder to save results
-date = "07_20_22"
-target_dir = ("RBM_Sim_" + date)
+date = "11_01_22"
+target_dir = ("MaxCut_Sim_" + date)
 
 # if folder does not exist, create it
 if not os.path.isdir("./outputs/"):
@@ -15,15 +16,21 @@ if not os.path.isdir("./outputs/"):
 if not os.path.isdir("./outputs/"):
     os.mkdir("./outputs/")
 
-#Boolean Clauses: (X||Y||Z), (X'||Y||Z), (X'||Y'||Z), (X||Y'||Z'), (X'||Y||Z')
-#Weight Matrix (Created from Boolean Clauses)
-     # x   y   z  x'  y'  z'
-W = ([-5, -1, -1, 10, -1, -1], 
-     [-1, -7, -2, -2, 10, -1], 
-     [-1, -2, -7, -2, -1, 10], 
-     [10, -2, -2, -7, -1, -1], 
-     [-1, 10, -1, -1, -5, -1], 
-     [-1, -1, 10, -1, -1, -5])
+#Example Graph:
+#         O---------3
+#        / \         \        
+#       1---\---------4
+#        \   \       /
+#         ----2------
+
+#Solution is are 10001/01110
+#Graph G = (V, E) with edge set E and vertex set V
+Vertices = np.array([0,0,0,0,0])
+Edges = np.array([[10,-1,-1,-1,10], #Connections of node 0
+                  [-1,10,-1,10,-1], #Connections of node 1
+                  [-1,-1,10,10,-1], #Connections of node 2
+                  [-1,10,10,10,-1], #Connections of node 3
+                  [10,-1,-1,-1,10]]) #Connections of node 4
 
 #Initialize Temperature & Step Size (Dictates the stochasticity of the model)
 T_init = 10.00
@@ -36,34 +43,30 @@ def sigmoid(x):
     sig = 1/(1+np.exp(x))
     return sig
 
-#Initialize Neurons (The variables that make up our Boolean Clauses)
-neurs = ([0,0,0,0,0,0])
-weighted = np.dot(neurs, W) #Stores the weighted neurons to determine activation probability
-
 for f in range(0, Iter):
     #Generate Random Values to Start 
-    for h in range(0,len(neurs)):
-        neurs[h] = rnd.randint(0, 1)
-    weighted = np.dot(neurs, W) #Calculate Weights
+    for h in range(0,len(Vertices)):
+        Vertices[h] = rnd.randint(0, 1)
+    weighted = np.dot(Vertices, Edges) #Calculate Weights
 
     Teff = T_init #Reset Temperature    
 
     #Iterate until the system has cooled
     while(Teff >= 0.01):
         for g in range(0, 1): #Iterations per temperature
-            for h in range(0,len(neurs)): #Do this to each Neuron
+            for h in range(0,len(Vertices)): #Do this to each Neuron
                 rand = rnd.uniform(0, 1) #rand num for determining set probability
                 if rand < sigmoid(weighted[h]/Teff):
-                    neurs[h] = 1
+                    Vertices[h] = 1
                 else:
-                    neurs[h] = 0
-            weighted = np.dot(neurs, W)
+                    Vertices[h] = 0
+            weighted = np.dot(Vertices, Edges)
         Teff -= step
     
     #Function to Convert Binary neurons to Decimal
     sum = 0
-    for k in range(0, len(neurs)):
-        sum += (neurs[k] * (2**(len(neurs)-k-1)))
+    for k in range(0, len(Vertices)):
+        sum += (Vertices[k] * (2**(len(Vertices)-k-1)))
     sols.append(sum) #Save Solution
 
 #Graphing of Histogram
