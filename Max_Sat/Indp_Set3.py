@@ -6,7 +6,7 @@ import os
 
 # folder to save results
 date = "1_24_23"
-target_dir = ("Indp_Sim_" + date)
+target_dir = ("Indp_Sim3_" + date)
 
 # if folder does not exist, create it
 if not os.path.isdir("./Indp_Set/"):
@@ -17,27 +17,19 @@ if not os.path.isdir("./Indp_Set/"):
     os.mkdir("./Indp_Set/")
 
 #Example Graph:
-#            0
-#           / \
-#          1   2 
-#         /\   /\
-#        /  \ /  \  
-#        \   4   /
-#         \ / \ /
-#          3   5
+#           0---3
+#              /|
+#             1-2---4
 
-
-
-#Solution is 100101 = 37
+#Solution is 11001 = 25
 #Graph G = (V, E) with edge set E and vertex set V
-                   # 0 1 2 3 4 5
-Vertices = np.array([0,0,0,0,0,0])
-Edges = np.array([[-10,10,10,-1,-1,-1], #Connections of node 0
-                  [10,-10,-1,10,10,-1], #Connections of node 1
-                  [10,-1,-10,-1,10,10], #Connections of node 2
-                  [-1,10,-1,-10,10,-1], #Connections of node 3
-                  [-1,10,10,10,-10,10], #Connections of node 4
-                  [-1,-1,10,-1,10,-10]]) #Connections of node 5         
+                   # 0 1 2 3 4
+Vertices = np.array([0,0,0,0,0])
+Edges = np.array([[-10,-1,-1,10,-1], #Connections of node 0
+                  [-1,-10,10,10,-1], #Connections of node 1
+                  [-1,10,-10,10,10], #Connections of node 2
+                  [10,10,10,-10,-1], #Connections of node 3
+                  [-1,-1,10,-1,-10]]) #Connections of node 4        
 
 #Initialize Temperature & Step Size (Dictates the stochasticity of the model)
 T_init = 10.00
