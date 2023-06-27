@@ -2,6 +2,7 @@ from tokenize import Double
 import numpy as np
 import matplotlib.pyplot as plt
 from she_mod_single import she_mod
+from mtj_types import SHE_MTJ_rng
 import os
 from tqdm import tqdm
 
@@ -12,6 +13,19 @@ target_dir = ("RBM_Sim_" + date)
 # if folder does not exist, create it
 if not os.path.isdir("./outputs/"):
     os.mkdir("./outputs/")
+
+# inject device variation function
+def inject_add_dev_var(G_in,g_std):
+    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
+    G_out  = G_in + G_noise
+    return G_out
+
+# adding cycle-to-cycle noise is the same function 
+# but separated for ease of comprehension
+def inject_add_cyc_noise(G_in,g_std):
+    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
+    G_out  = G_in + G_noise
+    return G_out
 
 # boolean clauses: (X||Y||Z) & (X'||Y||Z) & (X'||Y'||Z) & (X||Y'||Z') & (X'||Y||Z')
 # soln: 21/010101 28/011100
@@ -27,17 +41,15 @@ rmin = 1000
 rmax = 3000
 gmax = 1/rmin
 gmin = 1/rmax
+g_dev_var = 100
+g_cyc_noise = 50
 G = W
 G = (G/np.min(W))*(gmax-gmin)+gmin 
 G = -G
-G[W == 10] = 0.003
+G[W == 10] = 0
+G_base = inject_add_dev_var(G,g_dev_var)
 
-# inject noise function
-def inject_add_noise(G_in,g_std):
-    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-    G_out  = G_in + G_noise
-    return G_out
-
+mag_dev_var = 0.01
 
 # print(G)
 # boolean clauses: (x||y||z) & (x'||y||z)
@@ -64,6 +76,11 @@ scale = 1e13
 # initialize neurons (The variables that make up our Boolean Clauses)
 thetas = np.array([np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2])
 phis = np.ones_like(thetas)*np.random.uniform(0,2*np.pi,size=np.shape(thetas))
+
+devs = []
+for z in range(len(thetas)):
+    devs.append(SHE_MTJ_rng(thetas[z],phis[z],mag_dev_var))
+
 neurs = np.array([[0,0,0,0,0,0]])
 weighted = (neurs @ G) # stores the weighted neurons to determine activation probability
 sysenergy = (neurs @ G @ neurs.T)
@@ -78,10 +95,13 @@ for f in range(0, Iter):
     thetas = np.array([np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2])
     phis = np.ones_like(thetas)*np.random.uniform(0,2*np.pi,size=np.shape(thetas))
     neurs = np.array([[0,0,0,0,0,0]])
+    G = inject_add_cyc_noise(G_base,g_cyc_noise)
     weighted = (neurs @ G) # stores the weighted neurons to determine activation probability
     sysenergy = (neurs @ G @ neurs.T)
     for h in range(0,6):
-        thetas[h],phis[h],out,energy = she_mod(thetas[h],phis[h],0,0)
+        out,energy = devs[h].single_sample(0,0)
+        thetas[h] = devs[h].theta
+        phis[h] = devs[h].phi
         neurs[0][h] = out
     
     SolArray = []
@@ -89,13 +109,16 @@ for f in range(0, Iter):
 
     for v in tqdm(V_arr,leave=False,ncols=80):
         for g in range(10): # iterations per temp
-            for h in range(0,5): 
+            for h in range(0,6): 
                 # print(weighted*scale)
-                thetas[h],phis[h],out,energy = she_mod(thetas[h],phis[h],weighted[0,h]*scale,v)
+                out,energy = devs[h].single_sample(weighted[0,h]*scale,v)
+                thetas[h] = devs[h].theta
+                phis[h] = devs[h].phi
                 neurs[0][h] = out
             SolArray.append(convertToDec(neurs))
             temp = (neurs @ G @ neurs.T)[0][0]
             energytemp.append(temp)
+            G = inject_add_cyc_noise(G_base,g_cyc_noise)
             weighted = (neurs @ G)
 
     #Function to Convert Binary neurons to Decimal
