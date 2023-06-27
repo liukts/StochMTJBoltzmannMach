@@ -22,6 +22,7 @@ W = np.array([[-5, -1, -1, 10, -1, -1],
               [-1, 10, -1, -1, -5, -1], 
               [-1, -1, 10, -1, -1, -5]])
 
+# synapse array scaling
 rmin = 1000
 rmax = 3000
 gmax = 1/rmin
@@ -30,6 +31,12 @@ G = W
 G = (G/np.min(W))*(gmax-gmin)+gmin 
 G = -G
 G[W == 10] = 0.003
+
+# inject noise function
+def inject_add_noise(G_in,g_std):
+    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
+    G_out  = G_in + G_noise
+    return G_out
 
 
 # print(G)
