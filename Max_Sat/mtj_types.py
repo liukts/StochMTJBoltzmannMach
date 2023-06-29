@@ -132,7 +132,7 @@ class SHE_MTJ_rng():
         bitstr = (1 if np.cos(theta[-1]) > 0 else 0)
         self.theta = theta[-1]
         self.phi = phi[-1]
-        power = np.concatenate(power)
+        # power = np.concatenate(power)
         return bitstr,np.sum(power)*self.t_step
     
     def cont_sample(self):
