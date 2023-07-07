@@ -1,132 +1,129 @@
-from tokenize import Double
-import numpy as np
+from   mtj_types import SHE_MTJ_rng
+import RRAM_types
+import funcs
+
 import matplotlib.pyplot as plt
-from she_mod_single import she_mod
-from mtj_types import SHE_MTJ_rng
-import os
+import numpy as np
+
+from datetime import datetime
+from tokenize import Double
 from tqdm import tqdm
+from pathlib import Path
+import time
+import os
 
-# folder to save results
-date = "09_30_22"
-target_dir = ("RBM_Sim_" + date)
+def main():
+    # ========================== Problem definition =========================
+    total_start = time.time()
+    init_time = time.time()
+    # FIXME: optional: better way to translate problem to matrix?
+    # boolean clauses: (X||Y||Z) & (X'||Y||Z) & (X'||Y'||Z) & (X||Y'||Z') & (X'||Y||Z')
+    # soln: 21/010101 28/011100
+    W = np.array([[-5, -1, -1, 10, -1, -1], 
+                  [-1, -7, -2, -2, 10, -1],
+                  [-1, -2, -7, -2, -1, 10], 
+                  [10, -2, -2, -7, -1, -1],
+                  [-1, 10, -1, -1, -5, -1], 
+                  [-1, -1, 10, -1, -1, -5]])
 
-# if folder does not exist, create it
-if not os.path.isdir("./outputs/"):
-    os.mkdir("./outputs/")
+    #FIXME: off for now
+    g_dev_var   = 0      # device to device variation
+    g_cyc_noise = 0      # cycle to cycle variation 
+    mag_dev_var = 0      # magnetic device variation
 
-# inject device variation function
-def inject_add_dev_var(G_in,g_std):
-    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-    G_out  = G_in + G_noise
-    return G_out
+    # synapse array scaling
+    cb_array = RRAM_types.HfO2
+    scale = cb_array.scale
+    gmax = 1/cb_array.LRS
+    gmin = 1/cb_array.HRS
 
-# adding cycle-to-cycle noise is the same function 
-# but separated for ease of comprehension
-def inject_add_cyc_noise(G_in,g_std):
-    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-    G_out  = G_in + G_noise
-    return G_out
+    G = -1 * (( (W-np.min(W)/(np.max(W)-np.min(W)))*(gmax-gmin))+gmin )
+    # FIXME: not sure what to set as gmax, more negative or less? do all g's need to be pos or neg? 
+    G[W == 10] = gmax  #Make all elements in G where W is 10 correspond to a high energy
+    G_base = funcs.inject_add_dev_var(G,g_dev_var)
+    # ===============================================================================
+    # ////////////
+    # ================ annealing schedule ====================
+    Iter = 50 # number of Simulations to Run
+    iter_per_temp = 1
+    steps = 1000  #granularity of temperature
 
-# boolean clauses: (X||Y||Z) & (X'||Y||Z) & (X'||Y'||Z) & (X||Y'||Z') & (X'||Y||Z')
-# soln: 21/010101 28/011100
-# optional: better way to translate problem to matrix?
-W = np.array([[-5, -1, -1, 10, -1, -1], 
-              [-1, -7, -2, -2, 10, -1],
-              [-1, -2, -7, -2, -1, 10], 
-              [10, -2, -2, -7, -1, -1],
-              [-1, 10, -1, -1, -5, -1], 
-              [-1, -1, 10, -1, -1, -5]])
+    # current density start and end (J), probably dont need to change
+    J_start = 5e11 #NOTE: try 5e12->1e12?
+    J_end   = 1e11
+    J_arr   = np.linspace(J_start,J_end,steps)
+    # ========================================================
+    # ////////////
+    # ================== initialize neurons (The variables that make up our Boolean Clauses)
+    thetas    = np.full(6,np.pi/2)
+    phis      = np.ones_like(thetas)*np.random.uniform(0,2*np.pi,size=np.shape(thetas))
+    devs      = [ SHE_MTJ_rng(thetas[i], phis[i], mag_dev_var) for i in range(6)]
+    neurs     = np.array([0,0,0,0,0,0])
+    weighted  = (neurs @ G) # stores the weighted neurons to determine activation probability
 
-# synapse array scaling
-# important bit
-rmin = 1000
-rmax = 3000
-gmax = 1/rmin
-gmin = 1/rmax
-g_dev_var = 0      # device to device variation
-g_cyc_noise = 0    # cycle to cycle variation 
-G = W
-G = (G/np.min(W))*(gmax-gmin)+gmin 
-G = -G
-G[W == 10] = gmax
-G_base = inject_add_dev_var(G,g_dev_var)
+    #FIXME: hmm?
+    #sysenergy = (neurs @ W @ neurs.T)
+    sysenergy = (neurs @ G @ np.array(neurs).T)
+    init_end  = time.time() - init_time
 
-mag_dev_var = 0.0   # magnetic device variation
+    sols     = [] # empty array of solutions
+    allNeurs = [] # empty array to contain every travelled solution
+    allEnerg = [] # empty array to keep track on energies
+    # ========================================================================================
+    # ////////////
+    # ////////////
+    # ////////////
+    # ================================== Exexcute SA =========================================
+    total_SA_start = time.time()
+    total_sample_time = 0
+    for f in tqdm(range(Iter),leave=False,ncols=80):
+        # =================================================
+        #   Make an initial guess at random to start
+        # =================================================
+        neurs = funcs.sample_neurons(devs,0,scale,0)
+        # =================================================
+        SolArray   = []
+        energytemp = []
+        for J in J_arr: #   effective temperature
+            for g in range(iter_per_temp): # iterations per temp  (you can play with)
+                #============================
+                #   weighted arr is the result of VMM --
+                #   once scaled, it's used as input for the array of MTJs
+                #
+                #============================
+                neurs = funcs.sample_neurons(devs,weighted,scale,J)
+                #============================
+                SolArray.append(funcs.convertToDec(neurs))
+                #print(f"current sol arr sampled with J: {convertToDec(neurs)}")
+                #return scalar
+                #NOTE: temp or energy?
+                #NOTE: not the same equation from the paper.
+                temp = (neurs @ G @ np.array(neurs).T)
+                energytemp.append(temp)
+                #print(f"energytemp: {temp}")
+                #input()
 
-# current density start and end (J)
-V_start = 5e12
-V_end = 1e12
-steps = 21 # you should change
-V_arr = np.linspace(V_start,V_end,steps)
-#print(V_arr)
-Iter = 10 # number of Simulations to Run
-sols = [] # empty array of solutions
-allNeurs = [] # empty array to contain every travelled solution
-allEnerg = [] # empty array to keep track on energies
-# scaling factor for re-input into the system
-scale = 1e13
+                #=================================================
+                #   add cycle noise to new state before next loop
+                #================================================
+                G = funcs.inject_add_cyc_noise(G_base,g_cyc_noise)
+                weighted = (neurs @ G)
+        #///////////////////////////////////////////
+        #///////////////////////////////////////////
+        allEnerg.append(energytemp)
+        allNeurs.append(SolArray)
+        sum = funcs.convertToDec(neurs)
+        sols.append(sum) #Save Solution
+        
+        #print(f"Iteration {f+1}/{Iter}, {sum}, {bin(sum)}")
+    # ===================================================================================
 
-# initialize neurons (The variables that make up our Boolean Clauses)
-thetas = np.array([np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2,np.pi/2])
-phis = np.ones_like(thetas)*np.random.uniform(0,2*np.pi,size=np.shape(thetas))
-devs = []
-for z in range(len(thetas)):
-    devs.append(SHE_MTJ_rng(thetas[z],phis[z],mag_dev_var))
-
-neurs = np.array([[0,0,0,0,0,0]])
-weighted = (neurs @ G) # stores the weighted neurons to determine activation probability
-sysenergy = (neurs @ G @ neurs.T)
-
-def convertToDec(args):
-    sum = 0
-    for k in range(0, len(args[0])):
-        sum += (args[0][k] * (2**(len(args[0])-k-1)))
-    return sum
-
-for f in range(0, Iter):
-
-    for h in range(0,6):
-        out,energy = devs[h].single_sample(0,0)
-        thetas[h] = devs[h].theta
-        phis[h] = devs[h].phi
-        neurs[0][h] = out
-    
-    SolArray = []
-    energytemp = []
-
-    for v in tqdm(V_arr,leave=False,ncols=80):
-        for g in range(2): # iterations per temp  (you can play with)
-            for h in range(0,6): 
-                # print(weighted*scale)
-                out,energy = devs[h].single_sample(weighted[0,h]*scale,v)
-                thetas[h] = devs[h].theta
-                phis[h] = devs[h].phi
-                neurs[0][h] = out
-            SolArray.append(convertToDec(neurs))
-            temp = (neurs @ G @ neurs.T)[0][0]
-            energytemp.append(temp)
-            G = inject_add_cyc_noise(G_base,g_cyc_noise)
-            weighted = (neurs @ G)
-
-    #Function to Convert Binary neurons to Decimal
-    allEnerg.append(energytemp)
-    allNeurs.append(SolArray)
-    sum = convertToDec(neurs)
-    sols.append(sum) #Save Solution
-    print(energytemp[-1])
-    print(f'Iteration {f+1}/{Iter}, {sum}, {bin(sum)}')
+    print("--- init time: %s seconds ---" % (init_end))
+    print("--- total SA time: %s seconds ---" % (time.time() - total_SA_start))
+    print("--- total sample time: %s seconds ---" % (total_sample_time))
+    print("--- total program time: %s seconds ---" % (time.time() - total_start))
+    funcs.my_hist("Max Sat",Iter,sols)
 
 
-
-#Graphing of Histogram
-# np.save('./sam_outputs/hist_' + date + '.npy',allNeurs)
-# np.save('./sam_outputs/sols_' + date + '.npy',sols)
-# np.save('./sam_outputs/energy_' + date + '.npy',allEnerg)
-# col = ['purple']
-# plt.xticks(range(0, 63, 3))
-# plt.yticks(range(0, Iter, int(Iter/10)))
-# plt.hist(sols,bins=64, color= col)
-# plt.xlabel('Value')
-# plt.ylabel('Frequency')
-# plt.title('Solution Frequency Over ' + str(Iter) + ' Iterations')
-# plt.savefig('./sam_outputs/' + target_dir + '_' + str(Iter) + '_Histogram.png')
+if __name__ == "__main__":
+    main()
