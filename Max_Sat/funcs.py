@@ -95,13 +95,19 @@ def sample_neurons(devs,neurons_dot_w,scale,J_step) -> list:
 #device variation is gaussian for now, potentially change with something more experimental 
 # inject device variation function
 def inject_add_dev_var(G_in,g_std) -> np.ndarray:
-    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-    G_out  = G_in + G_noise
-    return G_out
+    if g_std == 0:
+        return G_in
+    else:
+        G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
+        G_out  = G_in + G_noise
+        return G_out
 
 # adding cycle-to-cycle noise is the same function 
 # but separated for ease of comprehension
 def inject_add_cyc_noise(G_in,g_std) -> np.ndarray:
-    G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-    G_out  = G_in + G_noise
-    return G_out
+    if g_std == 0:
+        return G_in
+    else:
+        G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
+        G_out  = G_in + G_noise
+        return G_out
