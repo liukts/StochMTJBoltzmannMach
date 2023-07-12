@@ -20,6 +20,11 @@ def inject_add_dev_var(G_in,g_std):
     G_out  = G_in + G_noise
     return G_out
 
+def inject_mult_dev_var(G_in,g_std):
+    G_noise = np.random.normal(loc=1,scale=g_std,size=G_in.shape)
+    G_out  = G_in*G_noise
+    return G_out
+
 # adding cycle-to-cycle noise is the same function 
 # but separated for ease of comprehension
 def inject_add_cyc_noise(G_in,g_std):
