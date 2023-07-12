@@ -48,7 +48,7 @@ def main():
     g_cyc_noise = 0      # cycle to cycle variation 
 
     cb_array = RRAM_types.HfO2
-    scale    = cb_array.scale.get(prob)
+    scale    = cb_array.scale.get(prob) #kinda jank, see RRAM_types.py
     gmin = 1.0/cb_array.HRS
     gmax = 1.0/cb_array.LRS
     
@@ -64,7 +64,7 @@ def main():
 
 
     # ================ annealing schedule ====================
-    Iter = 50   #Number of Simulations to Run
+    Iter = 1000   #Number of Simulations to Run
     iter_per_temp = 1
     T_init = 10.00
     step = 0.01
