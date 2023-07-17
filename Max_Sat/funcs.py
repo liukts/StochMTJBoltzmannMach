@@ -6,6 +6,7 @@
 import single_sample as ss
 
 import matplotlib.pyplot as plt
+import itertools as it
 import numpy as np
 
 from datetime import datetime
@@ -15,16 +16,17 @@ import os
 
 def handle_w_path(prob):
     #create dir and write path
-    date = datetime.now().strftime("%m-%d-%y_%H:%M:%S")
+    date = datetime.now().strftime("%m-%d_%H:%M:%S")
     out_dir = Path("./outputs")
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
-    w_file = ("RBM_Sim_" + prob + '_' + date + '_Histogram.png')
+    w_file = ("RBM_Sim_" + prob + '_' + date + '_Hist.png').replace(" ","") 
+    
     #pathlib POSIX path creation
     w_path = Path( out_dir / w_file)
     return(w_path)
 
-def my_hist(prob,num_iter,sols) -> None:
+def my_hist(prob,num_iter,sols,scale,T_init) -> None:
     # =================================
     # ===== Graphing of Histogram =====
     # =================================
@@ -51,9 +53,14 @@ def my_hist(prob,num_iter,sols) -> None:
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.title(prob + ' Solution Frequency Over ' + str(num_iter) + ' Iterations')
-    plt.show()
-    print("Save figure? y/n")
-    user_input = input()
+    plt.text(4,4, f"scale {scale:1.0e}")
+    plt.text(4,3.75, f"T_init {T_init}")
+    #plt.text(0.1,0.10, )
+    #plt.text(0.1,0.05, )
+    #plt.show()
+    #print("Save figure? y/n")
+    #user_input = input()
+    user_input='y'
     if user_input == 'y' or user_input == 'Y':
         plt.savefig(w_path,format='png',dpi=1200)
     elif user_input == 'n' or user_input == 'N':
@@ -92,22 +99,34 @@ def sample_neurons(devs,neurons_dot_w,scale,J_step) -> list:
         bits.append( out )
     return bits
 
-#device variation is gaussian for now, potentially change with something more experimental 
-# inject device variation function
-def inject_add_dev_var(G_in,g_std) -> np.ndarray:
-    if g_std == 0:
+get_Log10R      = lambda G: np.log10(1.0/G)
+sample_noise    = lambda logR,std_dev: np.random.normal(logR,std_dev)
+to_G            = lambda noisy_logR: 1.0/pow(10,noisy_logR)
+abs_arr         = lambda e: abs(e)
+lmap = lambda func, *iterable: list(map(func, *iterable))
+# The resistance is experimentally observed to be approximately log-normal (both cycle-to-cycle and device-to-device)
+# From Intrinsic Switching Variability in HfO2 RRAM, A.Fantini
+def inject_add_cyc_noise(G_in,stdd) -> np.ndarray:
+    if stdd == 0:
         return G_in
     else:
-        G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-        G_out  = G_in + G_noise
+        sign_matrix  = np.reshape([-1 if element < 0 else 1 for element in G_in.flatten()],(6,6))
+        abs_G_in      = lmap(abs_arr,G_in)
+        R_log         = lmap(get_Log10R, abs_G_in)
+        R_log_w_noise = lmap(sample_noise, R_log, it.repeat(stdd))
+        abs_G_out     = lmap(to_G, R_log_w_noise)
+        G_out         = np.multiply(abs_G_out, sign_matrix)
         return G_out
 
-# adding cycle-to-cycle noise is the same function 
-# but separated for ease of comprehension
-def inject_add_cyc_noise(G_in,g_std) -> np.ndarray:
-    if g_std == 0:
+#NOTE: same function for now, improve accuracy of variation if new information is found.
+def inject_add_dev_var(G_in,stdd) -> np.ndarray:
+    if stdd == 0:
         return G_in
     else:
-        G_noise = np.random.normal(loc=0,scale=g_std,size=G_in.shape)
-        G_out  = G_in + G_noise
+        sign_matrix  = np.reshape([-1 if element < 0 else 1 for element in G_in.flatten()],(6,6))
+        abs_G_in      = lmap(abs_arr,G_in)
+        R_log         = lmap(get_Log10R, abs_G_in)
+        R_log_w_noise = lmap(sample_noise, R_log, it.repeat(stdd))
+        abs_G_out     = lmap(to_G, R_log_w_noise)
+        G_out         = np.multiply(abs_G_out, sign_matrix)
         return G_out
