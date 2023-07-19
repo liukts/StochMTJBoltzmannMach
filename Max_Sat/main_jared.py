@@ -13,7 +13,9 @@ from re import S
 import time
 import os
 
-sigmoid   =  lambda x: 1/(1+np.exp(x))
+# 1e9 if J is above 1e9, and 1e4 if below -- no change if inbetween
+#sigmoid_device = lambda J: 1e9 if(J > 1e9) else( 1e4 if(J < 1e4 and J > 0) else(-1e4 if(J > -1e4 and J < 0) else(-1e9 if(J < -1e9 ) else J)))
+#sigmoid_device = lambda J: 1e9 if(J > 1e9) else( 1e4 if(J < 1e4) else J)
 def SA(sol_queue,get_run_data_flag):
     # ========================== Problem definition =========================
     prob = "Max Sat"
@@ -53,7 +55,7 @@ def SA(sol_queue,get_run_data_flag):
     g_dev_sig = 0.375      # device to device variation
     g_cyc_sig = 0.375        # cycle to cycle variation 
 
-    cb_array = RRAM_types.HfHfO2
+    cb_array = RRAM_types.MTJ_INC
     if prob == "Max Sat":
         scale  = cb_array.Max_Sat_amp
     elif prob == "Max Cut":
@@ -73,9 +75,11 @@ def SA(sol_queue,get_run_data_flag):
 
 
     # ================ annealing schedule ====================
+    #was using x,3,20,0.01
     total_iters = 1000   #Number of Simulations to Run
     iter_per_temp = 3
-    T_init = 20.00
+    #4 for mtj, 20 for memrsit correlation between range and temp length
+    T_init = 4.00
     T_step = 0.01
     temp_to_J =  lambda t: ((t-1)/(T_init-1) * (5e11-1e11))+1e11
     # ========================================================
@@ -96,29 +100,32 @@ def SA(sol_queue,get_run_data_flag):
     # =================================================
     #   Random state to start
     # =================================================
-    Vertices = funcs.sample_neurons(devs,0,scale,0)
+    Vertices = funcs.sample_neurons(devs,0,0)
     weighted = np.dot(Vertices, Edges) 
 
     Teff = T_init #Set/Reset Temperature    
+    Energys = set()
+    Solutions = set()
 
     while(Teff >= 1): #J, effectively 
         for g in range(iter_per_temp):
-            Vertices = (funcs.sample_neurons(devs,weighted,scale,temp_to_J(Teff)))
+            weighted_scaled = weighted * scale
+            Vertices = (funcs.sample_neurons(devs,weighted_scaled,temp_to_J(Teff)))
 
-            #   uncomment if analyzing evolution of algorithm across annealing schedule
-            #energy_across_temp.append(Vertices @ Edges @ np.array(Vertices).T)
-            #sols_across_temp.apend(funcs.convertToDec(Vertices)) 
+            #weighted_scaled_and_sigmoided = funcs.lmap(sigmoid_device,weighted_scaled)
+
+            Energys.add(Vertices @ Edges @ np.array(Vertices).T)
+            Solutions.add(funcs.convertToDec(Vertices)) 
+
             #============================
             #   weighted arr is the result of VMM --
             #   once scaled, it's used as input for the array of MTJs
             #   NOTE: i believe the weighted acts as a nearest neighbour function
             #
             #============================
+
+
             weighted = np.dot(Vertices, Edges)
-            #=================================================
-            #   add cycle noise to new state before next loop
-            #   NOTE: verify that this shouldnt be between each iter
-            #================================================
             Edges = funcs.inject_add_cyc_noise(Edges_base,g_cyc_sig)
         Teff -= T_step
     solution = funcs.convertToDec(Vertices)

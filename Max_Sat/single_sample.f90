@@ -1,4 +1,5 @@
 module single_sample
+    use iso_c_binding, only: sp=>c_float, dp=>c_double
     use she_mtj_rng_params
     use ziggurat
     implicit none
@@ -16,19 +17,20 @@ module single_sample
                                     Jappl,Jshe_in,theta_init,phi_init,dev_Ki,dev_TMR,dev_Rp) 
         implicit none
         integer          :: i,t
-        real,intent(in)  :: Jappl, Jshe_in,theta_init,phi_init !input
-        real,intent(in)  :: dev_Ki,dev_TMR, dev_Rp !device params
+        real(dp),intent(in)  :: Jappl, Jshe_in,theta_init,phi_init !input
+        real(dp),intent(in)  :: dev_Ki,dev_TMR, dev_Rp !device params
         !return values
-        real,intent(out) :: energy_usage,theta_end,phi_end
+        real(dp),intent(out) :: energy_usage,theta_end,phi_end
         integer,intent(out) :: bit
         !=================================================================
         !   time evolution for solve variables. uncomment if needed. array dump/print from this function is straightforward
         !
         !real,dimension(pulse_steps+relax_steps)    :: R,energy,theta,phi  
+        real,dimension(pulse_steps+relax_steps)    :: theta_over_time,phi_over_time  
         !==================================================================
-        real, dimension(pulse_steps + relax_steps) :: cumulative_pow
-        real :: V,J_SHE,J_STT,Hk,Ax,Ay,Az,dphi,dtheta,R1
-        real :: phi_i,theta_i,power_i,seed!,energy_i
+        real(dp), dimension(pulse_steps + relax_steps) :: cumulative_pow
+        real(dp) :: V,J_SHE,J_STT,Hk,Ax,Ay,Az,dphi,dtheta,R1
+        real(dp) :: phi_i,theta_i,power_i,seed!,energy_i
 
         !                            -*- some notes -*-                                                                       !
         !  static variables do not persist back in python so zigset (rng init function) is called each time this code runs                   !
@@ -55,7 +57,7 @@ module single_sample
         V     = v_pulse
         J_SHE = Jshe_in
         J_STT = Jappl
-        Hk    = (2*dev_Ki)/(tf*Ms*u0)-(2*ksi*V)/(u0*tox*tf)
+        Hk    = (2.0*dev_Ki)/(tf*Ms*u0)-(2.0*ksi*V)/(u0*tox*tf)
         do i = 1, pulse_steps
             !keep track of time steps for array navigation
             t=i+1

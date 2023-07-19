@@ -1,5 +1,5 @@
 FC           = gfortran
-FCFLAGS      = -Wall -Wextra
+FCFLAGS      = -O3 -Wall -Wextra
 F2PYC        = python3 -m numpy.f2py
 F2PYFLAGS    = --fcompiler=gnu95 -L. -I.
 F2PY_TARGET  = single_sample

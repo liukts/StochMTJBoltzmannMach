@@ -15,13 +15,13 @@ lmap = lambda func, *iterable: list(map(func, *iterable))
 
 def main():
     # ======================
-    y_select = "G"  #R,Rlog,G
+    y_select = "R"  #R,log10 R,G
     plot_select = "hist"    #hist, cdf
     # ======================
-    G_LRS = 1.0/100000
+    G_LRS = 1.0/1e5
     std_dev = 0.375
     G_LRS_mat = np.full((6,6),G_LRS)
-    sample_num = 10
+    sample_num = 2778
 
     y = []
     for i in range(sample_num):
@@ -31,7 +31,7 @@ def main():
         if y_select == "R":
             for elem in R_w_noise.flatten():
                 y.append(elem)
-        elif y_select == "Rlog":
+        elif y_select == "log10_R":
             for elem in R_log_w_noise.flatten():
                 y.append(elem)
         elif y_select == "G":
@@ -46,9 +46,12 @@ def main():
     if plot_select == "cdf":
         plt.plot((bins_count[1:]), (cdf))
     elif plot_select == "hist":
-        plt.hist(y,100)
+        plt.hist(y,100,facecolor="cadetblue")
+    plt.xlabel(f'{y_select}')
+    plt.ylabel('Frequency')
+    plt.title(y_select + 'LRS distribution around mean (100,000 samples)')
 
-    plt.savefig('./noise_test.png')
+    plt.savefig(f"./noise_test_{y_select}_{plot_select}.png", dpi=1200)
 
 if __name__ == "__main__":
     main()
