@@ -15,7 +15,7 @@ module SHE_MTJ_rng_params
     real(dp),parameter :: u0    = pi*4e-7               
     real(dp),parameter :: e     = 1.6e-19                
     real(dp),parameter :: kb    = 1.38e-23   
-    real(dp),parameter :: gammall = 2*u0*uB/h_bar 
+    real(dp),parameter :: gammall = 2.0*u0*uB/h_bar 
     real(dp),parameter :: gammab  = gammall/u0
 
     real(dp),parameter :: t_step = 5e-11
@@ -34,7 +34,7 @@ module SHE_MTJ_rng_params
     real(dp),parameter :: Bsat  = Ms*u0
     real(dp) :: ksi = 75e-15
     real(dp) :: gammap = gammall/(1+alpha*alpha)
-    real(dp),parameter :: volume = tf*pi*b*a/4
+    real(dp),parameter :: volume = tf*pi*b*a/4.0
     real(dp) :: Vh    = 0.5
     real(dp) :: delta = 40.0
     real(dp) :: A1    = a*b*pi/4

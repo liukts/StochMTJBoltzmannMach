@@ -32,6 +32,7 @@ class SHE_MTJ_rng():
             self.theta = init_theta
         self.phi = phi_init
 
+        #FIXME: check multiply
         self.Ki  = draw_norm(0.9056364e-3,var,0.05)    # The anisotropy energy in J/m2
         self.TMR = draw_norm(1.2,var,0.05)             # TMR ratio at V=0,120%  
         self.Rp  = draw_norm(8e3,var,0.05)             # Magenetoresistance at parallel state, 8000 Ohm

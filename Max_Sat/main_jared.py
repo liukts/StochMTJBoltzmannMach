@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./fortran_source')
 import matplotlib.pyplot as plt
 import random as rnd
 import numpy as np
@@ -100,7 +102,7 @@ def SA(sol_queue,get_run_data_flag):
     # =================================================
     #   Random state to start
     # =================================================
-    Vertices = funcs.sample_neurons(devs,0,0)
+    Vertices = funcs.sample_neurons(devs,0,0,0)
     weighted = np.dot(Vertices, Edges) 
 
     Teff = T_init #Set/Reset Temperature    
@@ -110,7 +112,7 @@ def SA(sol_queue,get_run_data_flag):
     while(Teff >= 1): #J, effectively 
         for g in range(iter_per_temp):
             weighted_scaled = weighted * scale
-            Vertices = (funcs.sample_neurons(devs,weighted_scaled,temp_to_J(Teff)))
+            Vertices = (funcs.sample_neurons(devs,weighted_scaled,temp_to_J(Teff),0))
 
             #weighted_scaled_and_sigmoided = funcs.lmap(sigmoid_device,weighted_scaled)
 

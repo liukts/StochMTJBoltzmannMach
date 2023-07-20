@@ -8,13 +8,15 @@ F2PY_TARGET  = single_sample
 SOURCES = $(filter-out ./${F2PY_TARGET}.f90, $(wildcard ./*.f90))
 OBJS    = $(SOURCES:.f90=.o)
 
+#all, one rule to rule them all
 all: ${OBJS}
 	${F2PYC} -c ${F2PYFLAGS} ${OBJS} -m ${F2PY_TARGET} ${F2PY_TARGET}.f90
 	#in case you want to run the pseudo rngs directly from python as well
 	#${F2PYC} -c --fcompiler=gnu95 -m pseudo_rngs pseudo_RNGs.f90
 
-#all, one rule to rule them all
 %.o: %.f90
+	# $@ evalues to .o
+	# $< evaluates to successive .f90
 	${FC} ${FCLAGS} -c $< -o $@
 
 # Clean target

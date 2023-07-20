@@ -82,7 +82,7 @@ def convertToDec(args) -> int:
 
 
 #   NOTE: Fortran in here
-def sample_neurons(devs,neurons_dot_W_scaled,J_step) -> list:
+def sample_neurons(devs,neurons_dot_W_scaled,J_step,dump_flag) -> list:
     bits = []
     #   initial setting will be initialized here
     if type(neurons_dot_W_scaled) is int:
@@ -92,7 +92,7 @@ def sample_neurons(devs,neurons_dot_W_scaled,J_step) -> list:
         #   f90 call looks like import.module_name.function(args)
         _, out, theta_end, phi_end = ss.single_sample.pulse_then_relax(neurons_dot_W_scaled[h],J_step,\
                                                       devs[h].theta,devs[h].phi,                     \
-                                                      devs[h].Ki,devs[h].TMR,devs[h].Rp)
+                                                      devs[h].Ki,devs[h].TMR,devs[h].Rp,dump_flag)
         devs[h].theta = theta_end
         devs[h].phi = phi_end
         bits.append( out )

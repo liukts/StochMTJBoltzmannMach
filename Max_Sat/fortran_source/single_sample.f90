@@ -14,21 +14,22 @@ module single_sample
         !
         ! --------------------------------*------------*-----------------------------------
         subroutine pulse_then_relax(energy_usage,bit,theta_end,phi_end,&
-                                    Jappl,Jshe_in,theta_init,phi_init,dev_Ki,dev_TMR,dev_Rp) 
+                                    Jappl,Jshe_in,theta_init,phi_init,dev_Ki,dev_TMR,dev_Rp,dump_flag) 
         implicit none
-        integer          :: i,t
-        real(dp),intent(in)  :: Jappl, Jshe_in,theta_init,phi_init !input
-        real(dp),intent(in)  :: dev_Ki,dev_TMR, dev_Rp !device params
+        integer          :: i,t_iter
+        real,intent(in)  :: Jappl, Jshe_in,theta_init,phi_init !input
+        real,intent(in)  :: dev_Ki,dev_TMR, dev_Rp !device params
+        logical, intent(in) :: dump_flag
         !return values
-        real(dp),intent(out) :: energy_usage,theta_end,phi_end
+        real,intent(out) :: energy_usage,theta_end,phi_end
         integer,intent(out) :: bit
         !=================================================================
         !   time evolution for solve variables. uncomment if needed. array dump/print from this function is straightforward
         !
-        !real,dimension(pulse_steps+relax_steps)    :: R,energy,theta,phi  
+        !real,dimension(pulse_steps+relax_steps)    :: R,energy
         real,dimension(pulse_steps+relax_steps)    :: theta_over_time,phi_over_time  
         !==================================================================
-        real(dp), dimension(pulse_steps + relax_steps) :: cumulative_pow
+        real,dimension(pulse_steps+relax_steps) :: cumulative_pow
         real(dp) :: V,J_SHE,J_STT,Hk,Ax,Ay,Az,dphi,dtheta,R1
         real(dp) :: phi_i,theta_i,power_i,seed!,energy_i
 
@@ -41,13 +42,15 @@ module single_sample
         call zigset(int(1+floor((1000001)*seed)))
 
         !solve init 
-        t=1 ! fortran has array indexing of 1, in math terms, t=0
+        t_iter  = 1 ! fortran has array indexing of 1, in math terms, t=0
         power_i = 0
         theta_i = theta_init
         phi_i   = phi_init
-        !print*,"theat init", theta_init
-        !print*,"phi init", phi_init
-        cumulative_pow(t) = power_i
+        if(dump_flag) then
+            theta_over_time(t_iter) = theta_i
+            phi_over_time(t_iter) = phi_i
+        end if
+        cumulative_pow(t_iter) = power_i
         !R(1) = dev_Rp
         !energy_i = 0
         !energy(1) = energy_i
@@ -60,7 +63,7 @@ module single_sample
         Hk    = (2.0*dev_Ki)/(tf*Ms*u0)-(2.0*ksi*V)/(u0*tox*tf)
         do i = 1, pulse_steps
             !keep track of time steps for array navigation
-            t=i+1
+            t_iter=i+1
             Ax = Hx-Nx*Ms*sin(theta_i)*cos(phi_i)     +rnor()*Htherm
             Ay = Hy-Ny*Ms*sin(theta_i)*sin(phi_i)     +rnor()*Htherm
             Az = Hz-Nz*Ms*cos(theta_i)+Hk*cos(theta_i)+rnor()*Htherm
@@ -76,11 +79,16 @@ module single_sample
             power_i= 0.5*cap_mgo*V**2+R2*(abs(J_SHE*A2))**2+R2*(abs(J_SHE*A2))**2+R1*(J_STT*A1)**2
             phi_i   = phi_i+t_step*dphi 
             theta_i = theta_i+t_step*dtheta
-            cumulative_pow(t) = power_i
+            cumulative_pow(t_iter) = power_i
+            if(dump_flag) then
+                theta_over_time(t_iter) = theta_i
+                phi_over_time(t_iter) = phi_i
+            end if
+
             !uneeded time evolution
-            !R(t)  = R1
+            !R(t_iter)  = R1
             !energy_i= energy_i+t_step*power_i 
-            !energy(t) = energy_i
+            !energy(t_iter) = energy_i
         end do
 
         !=================  Relax into a one of two low-energy states out-of-plane  ===================
@@ -89,7 +97,7 @@ module single_sample
         J_STT = Jappl
         Hk = (2*dev_Ki)/(tf*Ms*u0)-(2*ksi*V)/(u0*Ms*tox*tf)
         do i = 1, relax_steps
-            t=t+1
+            t_iter=t_iter+1
             Ax = Hx-Nx*Ms*sin(theta_i)*cos(phi_i)     +rnor()*Htherm
             Ay = Hy-Ny*Ms*sin(theta_i)*sin(phi_i)     +rnor()*Htherm
             Az = Hz-Nz*Ms*cos(theta_i)+Hk*cos(theta_i)+rnor()*Htherm
@@ -105,11 +113,29 @@ module single_sample
             power_i = 0.5*cap_mgo*V**2+R2*(abs(J_SHE*A2))**2+R2*(abs(J_SHE*A2))**2+R1*(J_STT*A1)**2
             phi_i   = phi_i+t_step*dphi
             theta_i = theta_i+t_step*dtheta
-            cumulative_pow(t) = power_i
-            !R(t) = R1
+            cumulative_pow(t_iter) = power_i
+            if(dump_flag) then
+                theta_over_time(t_iter) = theta_i
+                phi_over_time(t_iter) = phi_i
+            end if
+            !R(t_iter) = R1
             !energy_i= energy_i+t_step*power_i
-            !energy(t) = energy_i
+            !energy(t_iter) = energy_i
         end do
+
+        ! ===== array dump to file of theta/phi time evolution  ====
+        if(dump_flag)then
+            open(unit = 15, file = "time_evol_phi.txt", action = "write", status = "replace", &
+                    form = 'formatted')
+            open(unit = 20, file = "time_evol_theta.txt", action = "write", status = "replace", &
+                    form = 'formatted')
+            write(15,*),phi_over_time
+            write(20,*),theta_over_time
+
+            close(15)
+            close(20)
+        end if
+        ! ========================================================== 
 
         ! ===== return final solve values: energy,bit,theta,phi ====
         theta_end = theta_i

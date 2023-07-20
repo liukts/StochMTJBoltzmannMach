@@ -4,6 +4,7 @@
 ! translated from C by Alan Miller (amiller@bigpond.net.au) with edits by Jared Arzate
 ! ======================================================================================================
 module ziggurat
+   use iso_c_binding, only: sp=>c_float, dp=>c_double
    implicit none
    private
 
@@ -105,7 +106,7 @@ contains
 
     !Generate random normals
     function rnor( ) RESULT( fn_val )
-       real             ::  fn_val
+       real(dp)             ::  fn_val
        real, PARAMETER  ::  r = 3.442620
        real             ::  x, y
 
@@ -148,15 +149,16 @@ end module ziggurat
  
 ! slower than ziggurat, good for massively parallel operations.
 Module Box_Muller
+    use iso_c_binding, only: sp=>c_float, dp=>c_double
     implicit none
     contains
     function get_Box_Muller(mu,sig) result(r_norm)
        implicit none
         
-       real(8) :: pi=4.D0*DATAN(1.D0)
-       real(8) :: r_norm
-       real(8) :: u1,u2
-       real(8),intent(in) :: mu,sig
+       real(dp) :: pi=4.D0*DATAN(1.D0)
+       real(dp) :: r_norm
+       real(dp) :: u1,u2
+       real(dp),intent(in) :: mu,sig
 
        !FIXME: can most likely implement a uniform dist rand for better speed here.
        call random_number(u1)
@@ -169,13 +171,14 @@ Module Box_Muller
 end Module Box_Muller
 
 Program test
+    use iso_c_binding, only: sp=>c_float, dp=>c_double
     use ziggurat
     use Box_Muller
     implicit none
-    real(8)  :: x,zig_actual_mean,zig_std_dev,bm_actual_mean,bm_std_dev
-    real(8)  :: T1,T2,time_zig,time_bm
-    real(8)  :: cum_sum_mean,cum_sum_dev
-    real(8)  :: mean_bm,sig_bm,mean_zig !not sure how to modify zig algorithm to accomdate variable mean and std dev
+    real(dp)  :: x,zig_actual_mean,zig_std_dev,bm_actual_mean,bm_std_dev
+    real(dp)  :: T1,T2,time_zig,time_bm
+    real(dp)  :: cum_sum_mean,cum_sum_dev
+    real(dp)  :: mean_bm,sig_bm,mean_zig !not sure how to modify zig algorithm to accomdate variable mean and std dev
     !naive solution: do a simple range mapping
     integer :: i,num_iters=1000000
 
@@ -220,7 +223,6 @@ Program test
     end do
     call CPU_TIME(T2)
     time_bm=T2-T1
-
 
     print*,"---------- zig test ---------- "
     print*,"std. dev.: ", zig_std_dev
